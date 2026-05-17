@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jadwal Shalat</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1A1610;
+    --ink2: #3D3528;
+    --ink3: #7A6E5F;
+    --paper: #F5F0E8;
+    --paper2: #EDE7D8;
+    --paper3: #E3DAC8;
+    --gold: #B8860B;
+    --gold-light: #D4A017;
+    --gold-dim: rgba(184,134,11,0.2);
+    --green: #2D6A4F;
+    --green-light: #40916C;
+    --red: #9B2226;
+    --shadow: rgba(26,22,16,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Paper texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Geometric border pattern top */
+  .border-top {
+    height: 6px;
+    background: repeating-linear-gradient(90deg,
+      var(--gold) 0px, var(--gold) 20px,
+      var(--ink) 20px, var(--ink) 22px,
+      var(--gold) 22px, var(--gold) 42px,
+      transparent 42px, transparent 48px
+    );
+  }
+
+  .layout {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  /* ── Header ── */
+  header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+
+  .header-ornament {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .header-ornament::before, .header-ornament::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold));
+  }
+
+  .header-ornament::after {
+    background: linear-gradient(to left, transparent, var(--gold));
+  }
+
+  .header-ornament-inner {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .diamond {
+    width: 6px; height: 6px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  .diamond.small { width: 4px; height: 4px; opacity: 0.5; }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .arabic-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--ink3);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Date & Location bar ── */
+  .meta-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--paper3);
+    gap: 1rem;
+  }
+
+  .meta-date {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--ink2);
+    line-height: 1.2;
+  }
+
+  .meta-hijri {
+    font-size: 11px;
+    color: var(--ink3);
+    letter-spacing: 0.1em;
+    margin-top: 3px;
+  }
+
+  .meta-location {
+    text-align: right;
+    font-size: 12px;
+    color: var(--ink3);
+    line-height: 1.6;
+    max-width: 180px;
+  }
+
+  .meta-location strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink2);
+  }
+
+  /* ── Next prayer banner ── */
+  .next-banner {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .next-banner::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--gold);
+  }
+
+  .next-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 4px;
+  }
+
+  .next-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  .next-time {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--paper);
+  }
+
+  .countdown {
+    font-size: 11px;
+    color: rgba(245,240,232,0.5);
+    text-align: right;
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Prayer list ── */
+  .prayer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .prayer-row {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--paper3);
+    gap: 1rem;
+    transition: background 0.15s;
+    position: relative;
+    animation: row-in 0.5s ease-out both;
+  }
+
+  .prayer-row:last-child { border-bottom: none; }
+
+  .prayer-row.current {
+    background: rgba(184,134,11,0.07);
+    margin: 0 -1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    border-bottom: none;
+  }
+
+  .prayer-row.current::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+
+  @keyframes row-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .prayer-row:nth-child(1) { animation-delay: 0.05s; }
+  .prayer-row:nth-child(2) { animation-delay: 0.1s; }
+  .prayer-row:nth-child(3) { animation-delay: 0.15s; }
+  .prayer-row:nth-child(4) { animation-delay: 0.2s; }
+  .prayer-row:nth-child(5) { animation-delay: 0.25s; }
+  .prayer-row:nth-child(6) { animation-delay: 0.3s; }
+  .prayer-row:nth-child(7) { animation-delay: 0.35s; }
+
+  .prayer-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .prayer-icon svg { width: 22px; height: 22px; }
+
+  .prayer-name {
+    flex: 1;
+  }
+
+  .prayer-name-en {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+
+  .prayer-name-ar {
+    font-size: 11px;
+    color: var(--ink3);
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+
+  .prayer-time {
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: var(--ink2);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .prayer-row.current .prayer-time { color: var(--gold); font-weight: 400; }
+  .prayer-row.passed .prayer-name-en,
+  .prayer-row.passed .prayer-time { color: var(--ink3); }
+
+  /* ── Method selector ── */
+  .method-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--paper3);
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 0.75rem;
+  }
+
+  select {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: var(--paper2);
+    border: 1px solid var(--paper3);
+    border-radius: 4px;
+    color: var(--ink2);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%237A6E5F'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+
+  select:focus { outline: 1px solid var(--gold); }
+
+  /* ── Loader / Error ── */
+  .loader {
+    text-align: center;
+    padding: 3rem 0;
+    color: var(--ink3);
+  }
+
+  .loader-dots {
+    display: inline-flex;
+    gap: 6px;
+    margin-bottom: 1rem;
+  }
+
+  .loader-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: dot-pulse 1.2s ease-in-out infinite;
+  }
+
+  .loader-dot:nth-child(2) { animation-delay: 0.2s; }
+  .loader-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes dot-pulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  .error-box {
+    background: rgba(155,34,38,0.06);
+    border: 1px solid rgba(155,34,38,0.2);
+    border-radius: 4px;
+    padding: 1.25rem;
+    color: var(--red);
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .btn-retry {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.5rem;
+    background: transparent;
+    border: 1px solid var(--red);
+    border-radius: 4px;
+    color: var(--red);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .btn-retry:hover { background: rgba(155,34,38,0.06); }
+
+  /* ── Footer ── */
+  footer {
+    margin-top: 2.5rem;
+    text-align: center;
+    font-size: 10px;
+    color: var(--ink3);
+    letter-spacing: 0.1em;
+    line-height: 1.8;
+    opacity: 0.7;
+  }
+
+  footer a { color: var(--gold); text-decoration: none; }
+
+  /* ── Refresh button ── */
+  .btn-refresh {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.65rem;
+    background: transparent;
+    border: 1px solid var(--paper3);
+    border-radius: 4px;
+    color: var(--ink3);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-refresh:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* Sunnah times toggle */
+  .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+  }
+
+  .toggle-label { font-size: 12px; color: var(--ink3); }
+
+  .toggle {
+    width: 36px; height: 20px;
+    background: var(--paper3);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+  }
+
+  .toggle.on { background: var(--green-light); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: white;
+    top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+
+  .toggle.on::after { left: 19px; }
+</style>
+</head>
+<body>
+
+<div class="border-top"></div>
+
+<div class="layout">
+
+  <header>
+    <div class="header-ornament">
+      <div class="header-ornament-inner">
+        <div class="diamond small"></div>
+        <div class="diamond"></div>
+        <div class="diamond small"></div>
+      </div>
+    </div>
+    <h1>Jadwal Shalat</h1>
+    <div class="arabic-sub">مواقيت الصلاة</div>
+  </header>
+
+  <div id="main-content">
+    <div class="loader" id="loader">
+      <div class="loader-dots">
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+      </div>
+      <div style="font-size:12px;letter-spacing:0.1em;">Mendeteksi lokasi Anda...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PRAYERS = [
+  { key: 'Fajr',   nameId: 'Subuh',   nameAr: 'الفجر',   icon: 'moon'   },
+  { key: 'Sunrise',nameId: 'Syuruq',  nameAr: 'الشروق',  icon: 'sunrise', sunnah: true },
+  { key: 'Dhuhr',  nameId: 'Dzuhur',  nameAr: 'الظهر',   icon: 'sun'    },
+  { key: 'Asr',    nameId: 'Ashar',   nameAr: 'العصر',   icon: 'sun2'   },
+  { key: 'Maghrib',nameId: 'Maghrib', nameAr: 'المغرب',  icon: 'sunset' },
+  { key: 'Isha',   nameId: 'Isya',    nameAr: 'العشاء',  icon: 'stars'  },
+];
+
+const SUNNAH = [
+  { key: 'Midnight', nameId: 'Tengah Malam', nameAr: 'منتصف الليل', icon: 'moon2', sunnah: true },
+  { key: 'Lastthird', nameId: 'Sepertiga Malam', nameAr: 'آخر الليل', icon: 'moon2', sunnah: true },
+];
+
+const METHODS = [
+  { v: 2,  l: 'Islamic Society of North America (ISNA)' },
+  { v: 1,  l: 'University of Islamic Sciences, Karachi' },
+  { v: 3,  l: 'Muslim World League (MWL)' },
+  { v: 4,  l: 'Umm Al-Qura University, Makkah' },
+  { v: 5,  l: 'Egyptian General Authority of Survey' },
+  { v: 11, l: 'Majlis Ugama Islam Singapura (MUIS)' },
+  { v: 20, l: 'Kemenag — Indonesia' },
+];
+
+const ICONS = {
+  moon:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
+  sunrise: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 18a5 5 0 00-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>`,
+  sun:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+  sun2:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>`,
+  sunset:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 18a5 5 0 00-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="16 5 12 9 8 5"/></svg>`,
+  stars:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  moon2:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
+};
+
+let data = null;
+let showSunnah = false;
+let method = 20;
+let userLat, userLng, userCity;
+let countdownInterval;
+
+function toMinutes(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function formatHijri(d) {
+  const h = d.data.date.hijri;
+  return `${h.day} ${h.month.en} ${h.year} H`;
+}
+
+function formatGregorian(d) {
+  const g = d.data.date.gregorian;
+  return g.weekday.en + ', ' + g.day + ' ' + g.month.en + ' ' + g.year;
+}
+
+function timeToDate(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function countdown(timeStr) {
+  const target = timeToDate(timeStr);
+  const now = new Date();
+  let diff = Math.floor((target - now) / 1000);
+  if (diff < 0) return null;
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  if (h > 0) return `${h}j ${m}m lagi`;
+  if (m > 0) return `${m}m ${s}s lagi`;
+  return `${s}s lagi`;
+}
+
+function findNext(times) {
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const active = PRAYERS.filter(p => !p.sunnah);
+  for (const p of active) {
+    const t = times[p.key];
+    if (!t) continue;
+    if (toMinutes(t) > nowMin) return { ...p, time: t };
+  }
+  return { ...active[0], time: times[active[0].key] };
+}
+
+function renderContent() {
+  const times = data.data.timings;
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const nextP = findNext(times);
+
+  const allRows = [...PRAYERS, ...(showSunnah ? SUNNAH : [])];
+
+  const rows = allRows.map(p => {
+    const t = times[p.key];
+    if (!t) return '';
+    const tMin = toMinutes(t);
+    const isCurrent = p.key === nextP.key;
+    const isPassed = tMin < nowMin && !isCurrent;
+    const cls = isCurrent ? 'current' : isPassed ? 'passed' : '';
+
+    return `
+      <div class="prayer-row ${cls}">
+        <div class="prayer-icon" style="color:${p.sunnah ? 'var(--ink3)' : isCurrent ? 'var(--gold)' : 'var(--ink3)'}">
+          ${ICONS[p.icon] || ICONS.sun}
+        </div>
+        <div class="prayer-name">
+          <div class="prayer-name-en">${p.nameId}</div>
+          <div class="prayer-name-ar">${p.nameAr}</div>
+        </div>
+        <div class="prayer-time">${t}</div>
+      </div>`;
+  }).join('');
+
+  const methodOptions = METHODS.map(m2 =>
+    `<option value="${m2.v}" ${m2.v === method ? 'selected' : ''}>${m2.l}</option>`
+  ).join('');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="meta-bar">
+      <div>
+        <div class="meta-date">${formatGregorian(data)}</div>
+        <div class="meta-hijri">${formatHijri(data)}</div>
+      </div>
+      <div class="meta-location">
+        <strong id="city-name">${userCity || 'Lokasi Anda'}</strong>
+        ${userLat ? userLat.toFixed(4) + '°, ' + userLng.toFixed(4) + '°' : ''}
+      </div>
+    </div>
+
+    <div class="next-banner">
+      <div>
+        <div class="next-label">Shalat berikutnya</div>
+        <div class="next-name">${nextP.nameId}</div>
+      </div>
+      <div>
+        <div class="next-time">${nextP.time}</div>
+        <div class="countdown" id="countdown-text">${countdown(nextP.time) || ''}</div>
+      </div>
+    </div>
+
+    <div class="prayer-list" id="prayer-list">${rows}</div>
+
+    <div class="method-section">
+      <div class="section-label">Metode Perhitungan</div>
+      <select onchange="changeMethod(this.value)">${methodOptions}</select>
+      <div class="toggle-row">
+        <span class="toggle-label">Tampilkan waktu sunnah (Syuruq, Tengah Malam, Sepertiga Malam)</span>
+        <button class="toggle ${showSunnah ? 'on' : ''}" onclick="toggleSunnah(this)" aria-label="Toggle waktu sunnah"></button>
+      </div>
+      <button class="btn-refresh" onclick="fetchPrayers()">↻ &nbsp;Perbarui Jadwal</button>
+    </div>
+
+    <footer>
+      Data dari <a href="https://aladhan.com" target="_blank">AlAdhan API</a> &nbsp;·&nbsp;
+      Waktu lokal perangkat Anda &nbsp;·&nbsp;
+      Akurasi bergantung pada GPS &amp; metode kalkulasi
+    </footer>
+  `;
+
+  startCountdown(nextP.time);
+}
+
+function startCountdown(timeStr) {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    const el = document.getElementById('countdown-text');
+    if (!el) { clearInterval(countdownInterval); return; }
+    const c = countdown(timeStr);
+    el.textContent = c || '';
+  }, 1000);
+}
+
+function showLoader(msg) {
+  document.getElementById('main-content').innerHTML = `
+    <div class="loader">
+      <div class="loader-dots">
+        <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+      </div>
+      <div style="font-size:12px;letter-spacing:0.1em;">${msg}</div>
+    </div>`;
+}
+
+function showError(msg) {
+  document.getElementById('main-content').innerHTML = `
+    <div class="error-box">
+      ${msg}<br>
+      <button class="btn-retry" onclick="init()">Coba Lagi</button>
+    </div>`;
+}
+
+async function fetchPrayers() {
+  showLoader('Mengambil jadwal shalat...');
+  try {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2,'0');
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const yyyy = today.getFullYear();
+    const url = `https://api.aladhan.com/v1/timings/${dd}-${mm}-${yyyy}?latitude=${userLat}&longitude=${userLng}&method=${method}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error ' + res.status);
+    data = await res.json();
+    if (data.code !== 200) throw new Error(data.status);
+    renderContent();
+  } catch(e) {
+    showError('Gagal mengambil jadwal: ' + e.message + '<br>Periksa koneksi internet Anda.');
+  }
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const d = await res.json();
+    const a = d.address;
+    return a.city || a.town || a.village || a.county || a.state || 'Lokasi Anda';
+  } catch { return 'Lokasi Anda'; }
+}
+
+function changeMethod(v) {
+  method = parseInt(v);
+  fetchPrayers();
+}
+
+function toggleSunnah(btn) {
+  showSunnah = !showSunnah;
+  btn.classList.toggle('on');
+  if (data) renderContent();
+}
+
+function init() {
+  showLoader('Mendeteksi lokasi GPS...');
+  if (!navigator.geolocation) {
+    showError('Geolokasi tidak didukung browser ini.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    showLoader('Mencari nama kota...');
+    userCity = await reverseGeocode(userLat, userLng);
+    await fetchPrayers();
+  }, err => {
+    showError('Gagal mendapatkan lokasi: ' + err.message + '<br>Pastikan izin lokasi diaktifkan.');
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+init();
+</script>
+</body>
+</html>
